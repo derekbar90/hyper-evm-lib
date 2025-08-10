@@ -6,6 +6,7 @@ libs = ["lib"]
 # Optimizer settings
 optimizer = true
 optimizer_runs = 200
+via_ir = true
 
 [rpc_endpoints]
 hyperliquid = "https://rpc.hyperliquid.xyz/evm"
