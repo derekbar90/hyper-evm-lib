@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {ICoreWriter} from "../interfaces/ICoreWriter.sol";
 
 library HLConstants {
-
     /*//////////////////////////////////////////////////////////////
                         Addresses
     //////////////////////////////////////////////////////////////*/
@@ -32,13 +31,13 @@ library HLConstants {
 
     uint8 constant HYPE_EVM_EXTRA_DECIMALS = 10;
 
-
     /*//////////////////////////////////////////////////////////////
                         HYPE Token Index
     //////////////////////////////////////////////////////////////*/
     function hypeTokenIndex() internal view returns (uint64) {
         return block.chainid == 998 ? 1105 : 150;
     }
+
     function isHype(uint64 index) internal view returns (bool) {
         return index == hypeTokenIndex();
     }
@@ -61,6 +60,7 @@ library HLConstants {
     uint24 constant ADD_API_WALLET_ACTION = 9;
     uint24 constant CANCEL_ORDER_BY_OID_ACTION = 10;
     uint24 constant CANCEL_ORDER_BY_CLOID_ACTION = 11;
+    uint24 constant APPROVE_BUILDER_FEE_ACTION = 12;
 
     /*//////////////////////////////////////////////////////////////
                         Limit Order Time in Force

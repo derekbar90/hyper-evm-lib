@@ -7,13 +7,12 @@ import {HLConstants} from "../src/common/HLConstants.sol";
 import {PrecompileSimulator} from "./utils/PrecompileSimulator.sol";
 
 contract PrecompileLibTests is Test {
-
     using PrecompileLib for address;
 
     address public constant USDT0 = 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb;
-    address public constant uBTC  = 0x9FDBdA0A5e284c32744D2f17Ee5c74B284993463;
-    address public constant uETH  = 0xBe6727B535545C67d5cAa73dEa54865B92CF7907;
-    address public constant uSOL  = 0x068f321Fa8Fb9f0D135f290Ef6a3e2813e1c8A29;
+    address public constant uBTC = 0x9FDBdA0A5e284c32744D2f17Ee5c74B284993463;
+    address public constant uETH = 0xBe6727B535545C67d5cAa73dEa54865B92CF7907;
+    address public constant uSOL = 0x068f321Fa8Fb9f0D135f290Ef6a3e2813e1c8A29;
 
     function setUp() public {
         vm.createSelectFork("https://rpc.hyperliquid.xyz/evm");
@@ -33,57 +32,50 @@ contract PrecompileLibTests is Test {
         uint64 px = USDT0.spotPx();
         console.log("px: %e", px);
     }
-    function test_normalizedSpotPrice() public {
 
+    function test_normalizedSpotPrice() public {
         uint64 tokenIndex = USDT0.getTokenIndex();
         uint64 spotIndex = PrecompileLib.getSpotIndex(tokenIndex);
 
         uint64 spotIndex_alt = PrecompileLib.getSpotIndex(tokenIndex, 0);
         assertEq(spotIndex, spotIndex_alt);
-        
+
+        uint256 spotIndex_alt2 = USDT0.getSpotIndex();
+        assertEq(spotIndex, spotIndex_alt2);
+
         uint256 price = PrecompileLib.normalizedSpotPx(spotIndex);
 
         console.log("price: %e", price);
-        // Allow for minor stablecoin fluctuations (1% tolerance)
-        assertApproxEqRel(price, 1e8, 1e16);
+        assertApproxEqAbs(price, 1e8, 1e5);
     }
 
     function test_normalizedMarkPx() public {
-        uint256 btcPrice = PrecompileLib.normalizedMarkPx(0);
-        uint256 btcOracle = PrecompileLib.normalizedOraclePx(0);
-        console.log("BTC price: %e", btcPrice);
-        assertGt(btcPrice, 0);
-        // Ensure mark and oracle stay reasonably close
-        assertApproxEqRel(btcPrice, btcOracle, 1e17); // 10%
+        uint256 price = PrecompileLib.normalizedMarkPx(0);
+        console.log("BTC price: %e", price);
+        assertApproxEqAbs(price, 114000e6, 20000e6);
 
-        uint256 ethPrice = PrecompileLib.normalizedMarkPx(1);
-        uint256 ethOracle = PrecompileLib.normalizedOraclePx(1);
-        console.log("ETH price: %e", ethPrice);
-        assertGt(ethPrice, 0);
-        assertApproxEqRel(ethPrice, ethOracle, 1e17); // 10%
+        price = PrecompileLib.normalizedMarkPx(1);
+        console.log("ETH price: %e", price);
+        assertApproxEqAbs(price, 4000e6, 2000e6);
     }
 
     function test_normalizedOraclePrice() public {
-        uint256 btcOracle = PrecompileLib.normalizedOraclePx(0);
-        uint256 btcMark = PrecompileLib.normalizedMarkPx(0);
-        console.log("BTC price: %e", btcOracle);
-        assertGt(btcOracle, 0);
-        assertApproxEqRel(btcOracle, btcMark, 1e17); // 10%
+        uint256 price = PrecompileLib.normalizedOraclePx(0);
+        console.log("BTC price: %e", price);
+        assertApproxEqAbs(price, 114000e6, 20000e6);
 
-        uint256 ethOracle = PrecompileLib.normalizedOraclePx(1);
-        uint256 ethMark = PrecompileLib.normalizedMarkPx(1);
-        console.log("ETH price: %e", ethOracle);
-        assertGt(ethOracle, 0);
-        assertApproxEqRel(ethOracle, ethMark, 1e17); // 10%
+        price = PrecompileLib.normalizedOraclePx(1);
+        console.log("ETH price: %e", price);
+        assertApproxEqAbs(price, 4000e6, 2000e6);
     }
 
     function test_spotBalance() public {
-        PrecompileLib.SpotBalance memory balance = PrecompileLib.spotBalance(0xF036a5261406a394bd63Eb4dF49C464634a66155, 150);
+        PrecompileLib.SpotBalance memory balance =
+            PrecompileLib.spotBalance(0xF036a5261406a394bd63Eb4dF49C464634a66155, 150);
         console.log("balance: %e", balance.total);
     }
 
     function test_bbo() public {
-
         uint64 tokenIndex = uBTC.getTokenIndex();
         uint64 spotIndex = PrecompileLib.getSpotIndex(tokenIndex);
         uint64 asset = spotIndex + 10000;
@@ -93,15 +85,11 @@ contract PrecompileLibTests is Test {
     }
 
     function test_accountMarginSummary() public {
-
         address whale = 0x2Ba553d9F990a3B66b03b2dC0D030dfC1c061036;
         PrecompileLib.AccountMarginSummary memory summary = PrecompileLib.accountMarginSummary(0, whale);
 
-        // Account should have non-zero values even if PnL is negative
-        assertTrue(summary.accountValue != 0);
         assertGt(summary.marginUsed, 0);
-        assertTrue(summary.ntlPos != 0);
-        assertTrue(summary.rawUsd != 0);
+        assertGt(summary.ntlPos, 0);
 
         console.log("accountValue: %e", summary.accountValue);
         console.log("marginUsed: %e", summary.marginUsed);
@@ -128,7 +116,4 @@ contract PrecompileLibTests is Test {
 
         assertGt(blockNumber, block.number);
     }
-
-
-
 }

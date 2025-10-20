@@ -10,12 +10,12 @@ import {HLConstants} from "./common/HLConstants.sol";
  * @notice A library with helper functions for interacting with HyperEVM's precompiles
  */
 library PrecompileLib {
-
     // Onchain record of token indices for each linked evm contract
     ITokenRegistry constant REGISTRY = ITokenRegistry(0x0b51d1A9098cf8a72C325003F44C194D41d7A85B);
 
     /*//////////////////////////////////////////////////////////////
-                        Custom Utility Functions
+                  Custom Utility Functions 
+        (Overloads accepting token address instead of index)
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -65,8 +65,17 @@ library PrecompileLib {
     }
 
     /**
+     * @notice Gets the spot market index for the token/USDC pair for a token using its address.
+     * @dev Overload of getSpotIndex(uint64 tokenIndex)
+     */
+    function getSpotIndex(address tokenAddress) internal view returns (uint64) {
+        uint64 tokenIndex = getTokenIndex(tokenAddress);
+        return getSpotIndex(tokenIndex);
+    }
+
+    /**
      * @notice Gets the spot market index for a token.
-     * @dev If only one spot, returns it. Otherwise, finds the spot market with USDC as the quote token.
+     * @dev If only one spot market exists, returns it. Otherwise, finds the spot market with USDC as the quote token.
      */
     function getSpotIndex(uint64 tokenIndex) internal view returns (uint64) {
         uint64[] memory spots = tokenInfo(tokenIndex).spots;
@@ -162,13 +171,15 @@ library PrecompileLib {
     }
 
     function spotBalance(address user, uint64 token) internal view returns (SpotBalance memory) {
-        (bool success, bytes memory result) = HLConstants.SPOT_BALANCE_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, token));
+        (bool success, bytes memory result) =
+            HLConstants.SPOT_BALANCE_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, token));
         if (!success) revert PrecompileLib__SpotBalancePrecompileFailed();
         return abi.decode(result, (SpotBalance));
     }
 
     function userVaultEquity(address user, address vault) internal view returns (UserVaultEquity memory) {
-        (bool success, bytes memory result) = HLConstants.VAULT_EQUITY_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, vault));
+        (bool success, bytes memory result) =
+            HLConstants.VAULT_EQUITY_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, vault));
         if (!success) revert PrecompileLib__VaultEquityPrecompileFailed();
         return abi.decode(result, (UserVaultEquity));
     }
@@ -186,7 +197,8 @@ library PrecompileLib {
     }
 
     function delegatorSummary(address user) internal view returns (DelegatorSummary memory) {
-        (bool success, bytes memory result) = HLConstants.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
+        (bool success, bytes memory result) =
+            HLConstants.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
         if (!success) revert PrecompileLib__DelegatorSummaryPrecompileFailed();
         return abi.decode(result, (DelegatorSummary));
     }
@@ -210,7 +222,8 @@ library PrecompileLib {
     }
 
     function perpAssetInfo(uint32 perp) internal view returns (PerpAssetInfo memory) {
-        (bool success, bytes memory result) = HLConstants.PERP_ASSET_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(perp));
+        (bool success, bytes memory result) =
+            HLConstants.PERP_ASSET_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(perp));
         if (!success) revert PrecompileLib__PerpAssetInfoPrecompileFailed();
         return abi.decode(result, (PerpAssetInfo));
     }
@@ -245,18 +258,23 @@ library PrecompileLib {
         return abi.decode(result, (Bbo));
     }
 
-    function accountMarginSummary(uint32 perpDexIndex, address user) internal view returns (AccountMarginSummary memory) {
-        (bool success, bytes memory result) = HLConstants.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS.staticcall(abi.encode(perpDexIndex, user));
+    function accountMarginSummary(uint32 perpDexIndex, address user)
+        internal
+        view
+        returns (AccountMarginSummary memory)
+    {
+        (bool success, bytes memory result) =
+            HLConstants.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS.staticcall(abi.encode(perpDexIndex, user));
         if (!success) revert PrecompileLib__AccountMarginSummaryPrecompileFailed();
         return abi.decode(result, (AccountMarginSummary));
     }
 
     function coreUserExists(address user) internal view returns (bool) {
-        (bool success, bytes memory result) = HLConstants.CORE_USER_EXISTS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
+        (bool success, bytes memory result) =
+            HLConstants.CORE_USER_EXISTS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
         if (!success) revert PrecompileLib__CoreUserExistsPrecompileFailed();
         return abi.decode(result, (CoreUserExists)).exists;
     }
-
 
     /*//////////////////////////////////////////////////////////////
                        Structs

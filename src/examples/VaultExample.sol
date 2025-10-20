@@ -47,7 +47,7 @@ contract VaultExample {
      * @param coreAmount Amount of USDC to withdraw and send
      */
     function withdrawFromVaultAndSend(address vault, address recipient, uint64 coreAmount) external {
-        uint64 usdcPerpAmount = HLConversions.convertUSDC_CoreToPerp(coreAmount);
+        uint64 usdcPerpAmount = HLConversions.weiToPerp(coreAmount);
 
         CoreWriterLib.vaultTransfer(vault, false, usdcPerpAmount);
 
@@ -62,7 +62,7 @@ contract VaultExample {
      * @param coreAmount Amount of USDC to transfer and deposit to vault
      */
     function transferUsdcToPerpAndDepositToVault(address vault, uint64 coreAmount) external {
-        uint64 usdcPerpAmount = HLConversions.convertUSDC_CoreToPerp(coreAmount);
+        uint64 usdcPerpAmount = HLConversions.weiToPerp(coreAmount);
 
         CoreWriterLib.transferUsdClass(usdcPerpAmount, true);
 
@@ -97,7 +97,7 @@ contract VaultExample {
      */
     function isWithdrawable(address user, address vault) public view returns (bool withdrawable) {
         PrecompileLib.UserVaultEquity memory vaultEquity = PrecompileLib.userVaultEquity(user, vault);
-        return block.timestamp >= vaultEquity.lockedUntilTimestamp;
+        return CoreWriterLib.toMilliseconds(uint64(block.timestamp)) >= vaultEquity.lockedUntilTimestamp;
     }
 
     receive() external payable {}

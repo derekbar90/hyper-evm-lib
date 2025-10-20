@@ -12,3 +12,12 @@ docs/
 
 # Dotenv file
 .env
+
+# misc
+lcov.info
+ignored/
+
+# misc
+lcov.info
+ignored/
+broadcast/

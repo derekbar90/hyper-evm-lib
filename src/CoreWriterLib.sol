@@ -13,7 +13,7 @@ import {ICoreWriter} from "./interfaces/ICoreWriter.sol";
 /**
  * @title CoreWriterLib v1.0
  * @author Obsidian (https://x.com/ObsidianAudits)
- * @notice A library for interacting with Hyperliquid's CoreWriter
+ * @notice A library for interacting with HyperEVM's CoreWriter
  *
  * @dev Additional functionality for:
  * - Bridging assets between EVM and HyperCore
@@ -41,10 +41,13 @@ library CoreWriterLib {
     }
 
     function bridgeToCore(uint64 token, uint256 evmAmount) internal {
+        // Check if amount would be 0 after conversion to prevent token loss
+        uint64 coreAmount = HLConversions.evmToWei(token, evmAmount);
+        if (coreAmount == 0) revert CoreWriterLib__EvmAmountTooSmall(evmAmount);
         address systemAddress = getSystemAddress(token);
         if (isHype(token)) {
             (bool success,) = systemAddress.call{value: evmAmount}("");
-            require(success, "HYPE transfer failed");
+            if (!success) revert CoreWriterLib__HypeTransferFailed();
         } else {
             PrecompileLib.TokenInfo memory info = PrecompileLib.tokenInfo(uint32(token));
             address tokenAddress = info.evmContract;
@@ -63,7 +66,7 @@ library CoreWriterLib {
 
         uint64 coreAmount;
         if (isEvmAmount) {
-            coreAmount = HLConversions.convertEvmToCoreAmount(token, amount);
+            coreAmount = HLConversions.evmToWei(token, amount);
             if (coreAmount == 0) revert CoreWriterLib__EvmAmountTooSmall(amount);
         } else {
             if (amount > type(uint64).max) revert CoreWriterLib__CoreAmountTooLarge(amount);
@@ -75,7 +78,7 @@ library CoreWriterLib {
 
     function spotSend(address to, uint64 token, uint64 amountWei) internal {
         // Self-transfers will always fail, so reverting here
-        require(to != address(this), "Cannot self-transfer");
+        if (to == address(this)) revert CoreWriterLib__CannotSelfTransfer();
 
         coreWriter.sendRawAction(
             abi.encodePacked(uint8(1), HLConstants.SPOT_SEND_ACTION, abi.encode(to, token, amountWei))
@@ -96,7 +99,6 @@ library CoreWriterLib {
     function isHype(uint64 index) internal view returns (bool) {
         return index == HLConstants.hypeTokenIndex();
     }
-
 
     /*//////////////////////////////////////////////////////////////
                               Staking
@@ -119,10 +121,16 @@ library CoreWriterLib {
                               Trading
     //////////////////////////////////////////////////////////////*/
 
+    function toMilliseconds(uint64 timestamp) internal pure returns (uint64) {
+        return timestamp * 1000;
+    }
+
     function _canWithdrawFromVault(address vault) internal view returns (bool, uint64) {
         PrecompileLib.UserVaultEquity memory vaultEquity = PrecompileLib.userVaultEquity(address(this), vault);
 
-        return (block.timestamp > vaultEquity.lockedUntilTimestamp, vaultEquity.lockedUntilTimestamp);
+        return (
+            toMilliseconds(uint64(block.timestamp)) > vaultEquity.lockedUntilTimestamp, vaultEquity.lockedUntilTimestamp
+        );
     }
 
     function vaultTransfer(address vault, bool isDeposit, uint64 usdAmount) internal {
@@ -162,7 +170,9 @@ library CoreWriterLib {
     }
 
     function addApiWallet(address wallet, string memory name) internal {
-        coreWriter.sendRawAction(abi.encodePacked(uint8(1), HLConstants.ADD_API_WALLET_ACTION, abi.encode(wallet, name)));
+        coreWriter.sendRawAction(
+            abi.encodePacked(uint8(1), HLConstants.ADD_API_WALLET_ACTION, abi.encode(wallet, name))
+        );
     }
 
     function cancelOrderByOrderId(uint32 asset, uint64 orderId) internal {
@@ -182,6 +192,12 @@ library CoreWriterLib {
             abi.encodePacked(
                 uint8(1), HLConstants.FINALIZE_EVM_CONTRACT_ACTION, abi.encode(token, encodedVariant, createNonce)
             )
+        );
+    }
+
+    function approveBuilderFee(uint64 maxFeeRate, address builder) internal {
+        coreWriter.sendRawAction(
+            abi.encodePacked(uint8(1), HLConstants.APPROVE_BUILDER_FEE_ACTION, abi.encode(maxFeeRate, builder))
         );
     }
 }
